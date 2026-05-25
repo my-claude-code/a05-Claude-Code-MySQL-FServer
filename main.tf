@@ -12,6 +12,10 @@ terraform {
       source  = "hashicorp/local"
       version = "~> 2.0"
     }
+    time = {
+      source  = "hashicorp/time"
+      version = "~> 0.9"
+    }
   }
 }
 
@@ -32,6 +36,12 @@ locals {
 resource "azurerm_resource_group" "rg" {
   name     = "rg-${local.prefix}-fserver"
   location = var.location
+}
+
+# Azure needs a moment to propagate a new RG before private DNS zones can be created
+resource "time_sleep" "rg_ready" {
+  depends_on      = [azurerm_resource_group.rg]
+  create_duration = "30s"
 }
 
 # ── Virtual Network ──────────────────────────────────────────────────────────
@@ -391,6 +401,7 @@ resource "azurerm_lb_rule" "app" {
 resource "azurerm_private_dns_zone" "mysql" {
   name                = "privatelink.mysql.database.azure.com"
   resource_group_name = azurerm_resource_group.rg.name
+  depends_on          = [time_sleep.rg_ready]
 }
 
 resource "azurerm_private_dns_zone_virtual_network_link" "mysql" {
