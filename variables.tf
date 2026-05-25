@@ -12,7 +12,7 @@ variable "entra_client_secret" {
 variable "location" {
   description = "Azure region"
   type        = string
-  default     = "Canada Central"
+  default     = "Canada East"
 }
 
 variable "admin_username" {

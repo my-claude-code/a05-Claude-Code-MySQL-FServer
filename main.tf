@@ -23,7 +23,7 @@ provider "azurerm" {
 locals {
   prefix          = "flask-notes"
   internal_nlb_ip = "10.0.2.100"
-  agw_fqdn        = "${var.agw_dns_label}.canadacentral.cloudapp.azure.com"
+  agw_fqdn        = "${var.agw_dns_label}.canadaeast.cloudapp.azure.com"
   mysql_fqdn      = "${var.mysql_server_name}.mysql.database.azure.com"
   cert_password   = "terraform"
 }
