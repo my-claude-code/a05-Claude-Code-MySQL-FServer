@@ -50,6 +50,13 @@ resource "azurerm_virtual_network" "vnet" {
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
   address_space       = ["10.0.0.0/16"]
+  depends_on          = [time_sleep.rg_ready]
+}
+
+# ARM needs time to propagate the VNet before subnets and NSGs can be created
+resource "time_sleep" "vnet_ready" {
+  depends_on      = [azurerm_virtual_network.vnet]
+  create_duration = "30s"
 }
 
 resource "azurerm_subnet" "agw" {
@@ -57,6 +64,7 @@ resource "azurerm_subnet" "agw" {
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.0.0/24"]
+  depends_on           = [time_sleep.vnet_ready]
 }
 
 resource "azurerm_subnet" "web" {
@@ -64,6 +72,7 @@ resource "azurerm_subnet" "web" {
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.1.0/24"]
+  depends_on           = [time_sleep.vnet_ready]
 }
 
 resource "azurerm_subnet" "app" {
@@ -71,6 +80,7 @@ resource "azurerm_subnet" "app" {
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.2.0/24"]
+  depends_on           = [time_sleep.vnet_ready]
 }
 
 # MySQL Flexible Server requires a dedicated delegated subnet
@@ -79,6 +89,7 @@ resource "azurerm_subnet" "mysql" {
   resource_group_name  = azurerm_resource_group.rg.name
   virtual_network_name = azurerm_virtual_network.vnet.name
   address_prefixes     = ["10.0.3.0/24"]
+  depends_on           = [time_sleep.vnet_ready]
 
   delegation {
     name = "mysql-delegation"
@@ -94,6 +105,7 @@ resource "azurerm_network_security_group" "agw" {
   name                = "nsg-agw"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
+  depends_on          = [time_sleep.vnet_ready]
 
   security_rule {
     name                       = "allow-all-inbound"
@@ -112,6 +124,7 @@ resource "azurerm_network_security_group" "web" {
   name                = "nsg-web"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
+  depends_on          = [time_sleep.vnet_ready]
 
   security_rule {
     name                       = "allow-all-inbound"
@@ -130,6 +143,7 @@ resource "azurerm_network_security_group" "app" {
   name                = "nsg-app"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
+  depends_on          = [time_sleep.vnet_ready]
 
   security_rule {
     name                       = "allow-all-inbound"
@@ -148,6 +162,7 @@ resource "azurerm_network_security_group" "mysql" {
   name                = "nsg-mysql"
   location            = azurerm_resource_group.rg.location
   resource_group_name = azurerm_resource_group.rg.name
+  depends_on          = [time_sleep.vnet_ready]
 
   security_rule {
     name                       = "allow-all-inbound"
@@ -409,6 +424,7 @@ resource "azurerm_private_dns_zone_virtual_network_link" "mysql" {
   resource_group_name   = azurerm_resource_group.rg.name
   private_dns_zone_name = azurerm_private_dns_zone.mysql.name
   virtual_network_id    = azurerm_virtual_network.vnet.id
+  depends_on            = [time_sleep.vnet_ready]
 }
 
 resource "azurerm_mysql_flexible_server" "mysql" {
