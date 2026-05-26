@@ -4,10 +4,6 @@ terraform {
       source  = "hashicorp/azurerm"
       version = "~> 3.0"
     }
-    null = {
-      source  = "hashicorp/null"
-      version = "~> 3.0"
-    }
     local = {
       source  = "hashicorp/local"
       version = "~> 2.0"
@@ -239,10 +235,8 @@ resource "azurerm_public_ip" "agw" {
 }
 
 # ── Self-signed SSL certificate for Application Gateway ──────────────────────
-resource "null_resource" "agw_cert" {
-  triggers = {
-    fqdn = local.agw_fqdn
-  }
+resource "terraform_data" "agw_cert" {
+  triggers_replace = [local.agw_fqdn]
 
   provisioner "local-exec" {
     command = <<-EOT
@@ -261,7 +255,7 @@ resource "null_resource" "agw_cert" {
 
 data "local_file" "agw_pfx" {
   filename   = "/tmp/agw.pfx"
-  depends_on = [null_resource.agw_cert]
+  depends_on = [terraform_data.agw_cert]
 }
 
 # ── Application Gateway ──────────────────────────────────────────────────────
@@ -371,7 +365,7 @@ resource "azurerm_application_gateway" "agw" {
     priority                    = 20
   }
 
-  depends_on = [null_resource.agw_cert]
+  depends_on = [terraform_data.agw_cert]
 }
 
 # ── Internal Network Load Balancer (web → app tier) ──────────────────────────
