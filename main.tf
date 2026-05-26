@@ -245,22 +245,21 @@ resource "null_resource" "agw_cert" {
   }
 
   provisioner "local-exec" {
-    command = <<-EOT
-      openssl req -x509 -nodes -days 365 -newkey rsa:2048 \
-        -keyout /tmp/agw.key \
-        -out /tmp/agw.crt \
-        -subj "/CN=${local.agw_fqdn}"
-      openssl pkcs12 -export \
-        -out /tmp/agw.pfx \
-        -inkey /tmp/agw.key \
-        -in /tmp/agw.crt \
-        -passout pass:${local.cert_password}
+    interpreter = ["PowerShell", "-Command"]
+    command     = <<-EOT
+      $cert = New-SelfSignedCertificate `
+        -DnsName "${local.agw_fqdn}" `
+        -CertStoreLocation "Cert:\CurrentUser\My" `
+        -KeyExportPolicy Exportable `
+        -NotAfter (Get-Date).AddDays(365)
+      $pwd = ConvertTo-SecureString -String "${local.cert_password}" -Force -AsPlainText
+      Export-PfxCertificate -Cert $cert -FilePath "${path.module}/agw.pfx" -Password $pwd | Out-Null
     EOT
   }
 }
 
 data "local_file" "agw_pfx" {
-  filename   = "/tmp/agw.pfx"
+  filename   = "${path.module}/agw.pfx"
   depends_on = [null_resource.agw_cert]
 }
 
